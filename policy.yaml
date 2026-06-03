@@ -1,0 +1,36 @@
+# Sample policy for the delego sample app.
+#
+# Evaluation order: forbidden (hard deny) -> rules (first match wins) -> default.
+# A matched rule whose constraints fail becomes a DENY (fail-closed).
+# These rules target https://httpbin.org so the sample is runnable and harmless.
+
+version: 1
+default: deny # anything not explicitly allowed is refused
+
+forbidden:
+  - name: no-writes-by-default
+    description: Agents may never PUT/PATCH/DELETE
+    match:
+      method: [PUT, PATCH, DELETE]
+
+rules:
+  - name: read
+    description: Read-only requests to httpbin
+    decision: allow
+    match:
+      method: GET
+      host: httpbin.org
+      path: /**
+    constraints:
+      rate_limit: { max: 30, per: minute }
+
+  - name: small-payment
+    description: A small POST that always needs human approval
+    decision: needs_approval
+    match:
+      method: POST
+      host: httpbin.org
+      path: /post
+    constraints:
+      amount: { field: amount, max: 5000, currency: USD }
+      allow_list: { field: destination, in: [internal] }

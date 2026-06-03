@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# delego home (signing key, ledger, approvals, lock sidecars) — never commit
+.delego-home/
+*.pem
+*.lock
+audit.log.jsonl
+approvals.jsonl
