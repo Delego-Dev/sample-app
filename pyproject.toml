@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+# Make the top-level `app` package importable when pytest is invoked as `pytest`
+# (not just `python -m pytest`), so `from app.main import ...` resolves in CI.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
