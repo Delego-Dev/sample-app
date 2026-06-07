@@ -10,14 +10,25 @@ from __future__ import annotations
 
 import tempfile
 
+import pytest
 from delego.brokers import NullBroker
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 
 
+@pytest.fixture(autouse=True)
+def _approval_token(monkeypatch):
+    # The human-approval endpoints are a separate trust domain gated by a bearer
+    # (DELEGO_APPROVAL_TOKEN) — see test_approval_auth.py. Configure it so the
+    # end-to-end loop can approve; client() sends the matching header.
+    monkeypatch.setenv("DELEGO_APPROVAL_TOKEN", "test-token")
+
+
 def client() -> TestClient:
-    return TestClient(create_app(broker=NullBroker(), home=tempfile.mkdtemp()))
+    c = TestClient(create_app(broker=NullBroker(), home=tempfile.mkdtemp()))
+    c.headers["Authorization"] = "Bearer test-token"  # approval trust domain
+    return c
 
 
 SMALL = {
