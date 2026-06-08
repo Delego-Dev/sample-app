@@ -1,8 +1,8 @@
 # delego sample app
 
 A small **FastAPI** service that shows how to build on
-[**delego**](https://github.com/Delego-Dev/delego) — a policy & audit firewall
-for agent actions. An agent proposes HTTP actions; the service authorises them
+[**delego**](https://github.com/Delego-Dev/delego) — intent-bound action
+authorization for AI agents. An agent proposes HTTP actions; the service authorises them
 deterministically, parks sensitive ones for human approval, executes allowed
 ones through a broker, and records a signed, tamper-evident audit trail.
 
