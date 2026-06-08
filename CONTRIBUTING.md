@@ -32,7 +32,7 @@ it green. Run a **single** uvicorn worker — delego's state is file-backed.
   not accepted (it is branch-protected and requires review).
 - Keep changes small and explain the *why*. The only app-specific code is the
   [`BrokerAdapter`](app/broker.py) and the [policy](policy.yaml) — most behaviour
-  lives in the published `delego` package, so fixes to the firewall itself belong
+  lives in the published `delego` package, so fixes to delego itself belong
   [upstream](https://github.com/Delego-Dev/delego).
 - Run `pytest` before submitting; add or adjust tests for any behaviour change.
 
