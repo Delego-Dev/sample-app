@@ -19,12 +19,17 @@ class HttpxBroker:
     this is exactly where you'd inject them for a real upstream service.
 
     Per the ``BrokerAdapter`` execution contract (spec §4.2) it sends only the
-    **fingerprinted** action — method + host + path + the declared ``params`` —
-    and refuses (``BrokerRefusal``) if ``action.url`` carries a query string or
-    fragment, since through protocol 0.2 the query is outside the fingerprint and
-    so was never authorised. Forwarding it verbatim would let ``/orders?to=me``
-    and ``/orders?to=attacker`` (one fingerprint) reach different upstreams — the
-    confused-deputy gap the firewall exists to close."""
+    **fingerprinted** action — method + host + path + canonicalized query + the
+    declared ``params``. Since protocol 0.3 the URL's query string is folded into
+    the fingerprint, so it *is* part of the authorised action: ``/orders?to=me``
+    and ``/orders?to=attacker`` carry different fingerprints, and the broker
+    forwards the query of the authorised action. The only channel the fingerprint
+    does not represent is the URL ``#fragment``, which the broker refuses
+    (``BrokerRefusal``) rather than forward — never silently strip.
+
+    *(Pre-0.3 this broker refused* **all** *queries, the 0.2.3 interim defense;
+    that is now over-strict — the query is fingerprint-bound. Requires delego
+    ≥ 0.3.0.)*"""
 
     name = "httpx"
 
@@ -33,13 +38,17 @@ class HttpxBroker:
             timeout=timeout, headers={"User-Agent": "delego-sample-app"}
         )
 
-    def execute(self, action: ProposedAction) -> dict:
-        # Fail closed on a query/fragment the fingerprint never represented,
-        # rather than silently forwarding decision-relevant data (spec §4.2).
-        if action.has_query:
+    def execute(self, action: ProposedAction, token: str | None = None) -> dict:
+        # Fail closed on a #fragment — data outside the fingerprint preimage
+        # (spec §4.2) — rather than forwarding what the decision never saw. The
+        # query, now fingerprint-bound, is part of the authorised action and is
+        # forwarded via ``fingerprinted_url`` below. (``token`` is accepted for
+        # the §9 profile; this in-process broker trusts the decision, so it does
+        # not verify — a *separated* gateway would, see delego.verify_token.)
+        if action.has_fragment:
             raise BrokerRefusal(
-                "broker refuses to execute: action.url carries a query string or "
-                "fragment outside the fingerprint (method+host+path+params), so it "
+                "broker refuses to execute: action.url carries a #fragment, which "
+                "is outside the fingerprint (method+host+path+query+params) and so "
                 "was never authorised (spec §4.2). Put decision-relevant values in "
                 "params. Offending url: " + action.url
             )
@@ -49,7 +58,8 @@ class HttpxBroker:
         # For writes, forward the declared params as the JSON body.
         if method in ("POST", "PUT", "PATCH"):
             kwargs["json"] = action.params
-        # Request only the fingerprinted URL (scheme+host+path); no query is sent.
+        # Request the fingerprinted URL (scheme+host+path+query); the #fragment
+        # is never represented in the fingerprint, so it is never sent.
         resp = self._client.request(method, action.fingerprinted_url, **kwargs)
         return {
             "broker": self.name,
