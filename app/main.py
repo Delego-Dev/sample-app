@@ -121,8 +121,8 @@ def create_app(broker: BrokerAdapter | None = None, home: str | os.PathLike | No
     @app.exception_handler(BrokerRefusal)
     def _broker_refused(_request, exc: BrokerRefusal):
         # The firewall authorised the fingerprinted action, but the broker refused
-        # to forward decision-relevant data outside that fingerprint (a query
-        # string; spec §4.2). Surface it as a clear 4xx, not a 500.
+        # to forward decision-relevant data outside that fingerprint (a URL
+        # #fragment; spec §4.2). Surface it as a clear 4xx, not a 500.
         from fastapi.responses import JSONResponse
 
         return JSONResponse(
